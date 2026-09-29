@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.azure
+mlruns/
+data/raw/*
+!data/raw/.gitkeep
+.pytest_cache/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate*
+terraform/terraform.tfvars
+terraform/backend.hcl
+
+# Ferramentas
+.ruff_cache/
+.ipynb_checkpoints/
+notebooks/*.png

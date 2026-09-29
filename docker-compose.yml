@@ -1,0 +1,150 @@
+# Stack local completa: PostgreSQL (Offline Store + app + MLflow), Redis (Online Store),
+# MLflow Tracking Server, API FastAPI, interface web (Streamlit) e pgweb (interface gráfica do Postgres).
+#
+#   API: http://localhost:8000/docs · MLflow: http://localhost:5000
+#   Interface web: http://localhost:8501 · Postgres (pgweb): http://localhost:8081
+#
+#   docker compose up -d --build                      # sobe a infraestrutura + API
+#   docker compose --profile pipeline run --rm pipeline   # dados -> Feast -> simulação/MLflow
+
+x-app-env: &app-env
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: ${POSTGRES_DB:-datathon}
+  POSTGRES_USER: ${POSTGRES_USER:-datathon}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-datathon}
+  POSTGRES_SSLMODE: disable
+  REDIS_CONNECTION_STRING: redis:6379
+  MLFLOW_TRACKING_URI: http://mlflow:5000
+  FEAST_REPO_PATH: /app/feature_store
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-datathon}
+      POSTGRES_USER: ${POSTGRES_USER:-datathon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-datathon}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mlflow:
+    build:
+      context: ./docker/mlflow
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-datathon}
+      POSTGRES_USER: ${POSTGRES_USER:-datathon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-datathon}
+      POSTGRES_SSLMODE: disable
+      MLFLOW_ARTIFACTS_DESTINATION: /mlflow/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-artifacts:/mlflow/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  api:
+    build: .
+    image: datathon-mab-app:latest
+    environment: *app-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Interface web da demonstração (Streamlit): consome só a API.
+  ui:
+    build: ./ui
+    image: datathon-mab-ui:latest
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # --- Interface gráfica do banco (leve, ~20 MB) ---
+  # Postgres: tabelas client_features, campaign_history, bandit_state, recommendation_logs.
+  pgweb:
+    image: docker.io/sosedoff/pgweb:latest
+    command:
+      - --bind=0.0.0.0
+      - --listen=8081
+      - --url=postgres://${POSTGRES_USER:-datathon}:${POSTGRES_PASSWORD:-datathon}@postgres:5432/${POSTGRES_DB:-datathon}?sslmode=disable
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/api/info"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Job sob demanda (não sobe com `up`): ingestão, materialização do Feast e simulação.
+  pipeline:
+    image: datathon-mab-app:latest
+    profiles: ["pipeline"]
+    command: ["sh", "scripts/run_pipeline.sh"]
+    environment: *app-env
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mlflow:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:
+  mlflow-artifacts:

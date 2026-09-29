@@ -1,0 +1,6 @@
+subscription_id      = "00000000-0000-0000-0000-000000000000" # az account show --query id -o tsv
+location             = "centralus"
+environment          = "dev"
+image_tag            = "latest"
+mlflow_allowed_cidrs = ["203.0.113.10/32"] # seu IP público (curl -4 ifconfig.me)
+github_repository    = ""                  # ex.: "seu-usuario/datathon" para habilitar o CD

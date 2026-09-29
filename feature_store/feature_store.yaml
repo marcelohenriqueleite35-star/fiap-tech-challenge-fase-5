@@ -1,0 +1,29 @@
+# Configuração do Feast. As variáveis ${...} são expandidas a partir do ambiente,
+# então o mesmo arquivo serve para docker-compose e para AWS (RDS + ElastiCache).
+project: datathon_mab
+provider: local
+
+# Registry (catálogo de entidades/feature views) também no PostgreSQL, para ser
+# compartilhado entre a API e os jobs de materialização/treino.
+registry:
+  registry_type: sql
+  path: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+  cache_ttl_seconds: 60
+
+# Offline Store: histórico completo das features (tabela client_features).
+offline_store:
+  type: postgres
+  host: ${POSTGRES_HOST}
+  port: ${POSTGRES_PORT}
+  database: ${POSTGRES_DB}
+  db_schema: public
+  user: ${POSTGRES_USER}
+  password: ${POSTGRES_PASSWORD}
+  sslmode: ${POSTGRES_SSLMODE}   # disable no docker-compose, require no RDS
+
+# Online Store: último valor de cada feature por cliente, servido em sub-milissegundos.
+online_store:
+  type: redis
+  connection_string: ${REDIS_CONNECTION_STRING}   # ex.: redis:6379 ou <endpoint>:6379,ssl=true
+
+entity_key_serialization_version: 3

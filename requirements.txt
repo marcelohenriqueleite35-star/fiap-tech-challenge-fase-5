@@ -1,0 +1,28 @@
+# --- Dados e ciência de dados ---
+pandas>=2.2,<3            # Feast 0.66 exige pandas < 3
+numpy>=2.0,<3
+scikit-learn>=1.5,<2
+matplotlib>=3.9,<4
+
+# --- MLOps ---
+mlflow>=3.4,<4
+
+# --- Serviço de API ---
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+pydantic>=2.10,<3
+
+# --- Banco de dados ---
+psycopg2-binary>=2.9,<3
+sqlalchemy>=2.0,<3
+
+# --- Feature Store (offline em PostgreSQL, online em Redis) ---
+feast[postgres,redis]==0.66.0
+redis>=5,<8               # Feast 0.66 exige redis < 8
+
+# --- Nuvem (download do dataset no Azure Blob Storage) ---
+azure-storage-blob>=12.19,<13
+
+# --- Testes ---
+pytest>=8,<9
+httpx>=0.27,<1

@@ -1,0 +1,7 @@
+-r requirements.txt
+
+# --- Desenvolvimento: lint e notebooks ---
+ruff>=0.16,<0.17
+jupyterlab>=4.2,<5
+nbclient>=0.10,<1
+ipykernel>=6.29,<8
