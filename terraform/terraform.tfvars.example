@@ -4,3 +4,4 @@ environment          = "dev"
 image_tag            = "latest"
 mlflow_allowed_cidrs = ["203.0.113.10/32"] # seu IP público (curl -4 ifconfig.me)
 github_repository    = ""                  # ex.: "seu-usuario/datathon" para habilitar o CD
+github_oidc_subject  = ""                  # só se o CD der AADSTS700213: copie o "subject claim" do log do CD

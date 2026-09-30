@@ -123,6 +123,16 @@ variable "github_repository" {
   default     = ""
 }
 
+variable "github_oidc_subject" {
+  description = <<-EOT
+    Subject exato do token OIDC do GitHub (aparece no log do passo "Login na Azure" do CD). Repositórios novos
+    usam o formato com IDs, "repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:production". Vazio = formato
+    clássico "repo:<owner>/<repo>:environment:production".
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "log_retention_days" {
   description = "Retenção do Log Analytics (mínimo 30)"
   type        = number

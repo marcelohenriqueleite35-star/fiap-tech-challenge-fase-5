@@ -519,6 +519,10 @@ terraform -chdir=terraform output -raw mlflow_url
 
 1. No `terraform.tfvars`, preencha `github_repository = "<owner>/<repo>"` e rode `terraform apply`. Isso cria a
    identidade que o GitHub usa, com permissão só para publicar imagens e atualizar o resource group do projeto.
+   Repositórios novos no GitHub enviam o *subject* do token com IDs numéricos
+   (`repo:<owner>@<id>/<repo>@<id>:environment:production`). Se o login do CD falhar com `AADSTS700213`, copie o
+   *subject claim* mostrado no log do passo "Login na Azure", coloque em `github_oidc_subject` no `terraform.tfvars`
+   e rode `terraform apply` de novo.
 2. No GitHub, em **Settings > Environments**, crie o environment `production` com as variáveis:
 
    | Variável | Valor |

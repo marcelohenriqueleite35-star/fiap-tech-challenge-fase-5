@@ -19,7 +19,7 @@ resource "azurerm_federated_identity_credential" "github" {
   user_assigned_identity_id = azurerm_user_assigned_identity.github[0].id
   audience                  = ["api://AzureADTokenExchange"]
   issuer                    = "https://token.actions.githubusercontent.com"
-  subject                   = "repo:${var.github_repository}:environment:production"
+  subject                   = var.github_oidc_subject != "" ? var.github_oidc_subject : "repo:${var.github_repository}:environment:production"
 }
 
 # Push de imagens no ACR.
